@@ -5,9 +5,6 @@ and properly categorise them."""
 
 from optparse import OptionParser
 import ConfigParser
-from torrent.session import Session
-from ui.console import consoleUI
-from ui.console_handler import ProgressConsoleHandler
 import logging.handlers
 import logging
 import threading
@@ -19,6 +16,10 @@ import glob
 import sys
 import os
 import re
+
+from torrent.session import Session
+from ui.console import consoleUI
+from ui.console_handler import ProgressConsoleHandler
 
 version = '0.0.1'
 name = 'Gulliver'
@@ -115,7 +116,7 @@ def initLogging():
     global stdoutHandler
 
     formatter = logging.Formatter('%(asctime)s (%(levelname)s) - %(message)s')
-    sysFormatter = logging.Formatter('torrent.py['+str(pid)+']: %(message)s')
+    sysFormatter = logging.Formatter(name+'['+str(pid)+']: %(message)s')
 
     # Set up syslog handler
     sh = logging.handlers.SysLogHandler(address='/dev/log')
@@ -134,7 +135,6 @@ def main(argv):
 
     global pid, debug_limit
     pid = os.getpid()
-    writeCounter = 0
 
     # Setup logging
     initLogging()
@@ -159,8 +159,15 @@ def main(argv):
     log.addHandler(consoleHandler)
     lt_session = Session()
 
+    lt_session.torrent_add("/home/rk/Development/Python/Gulliver/grml.torrent",'/home/rk/Download')
+
+    outfile = 'libtorrent.settings'
+    lt_session.save_libtor_settings(outfile)
+
+    lt_session.display_libtor_settings(console)
+
     for i in range(100):
-        console.update_status("abcd!"*i)
+        console.update_status(lt_session.session_status())
         time.sleep(1)
 
 

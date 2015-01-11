@@ -17,7 +17,7 @@ class ProgressConsoleHandler(logging.Handler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            self.console.update_log(msg)
+            #self.console.update_log(msg)
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
