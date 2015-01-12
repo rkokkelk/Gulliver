@@ -13,11 +13,18 @@ class consoleUI():
     logscr = None
     stascr = None
     inpscr = None
+    lt_session = None
     index = 0
 
-    def __init__(self):
+    input_run = True
+
+    def __init__(self, lt_session):
         log.debug("Init")
         curses.wrapper(self.run)
+        self.lt_session = lt_session
+
+    def get_libtorrent_session(self):
+        return self.lt_session
 
     def run(self,stdscr):
 
@@ -48,13 +55,9 @@ class consoleUI():
         logscr.refresh(0,0,1,0,curses.LINES-3,curses.COLS-1)
         inpscr.refresh()
 
-
-        input_thread = consoleInput(inpscr,self)
-        input_thread.start()
-
     def update_status(self, status):
         self.stascr.addstr(0,0,status)
-        self.stascr.refresh()
+        self.stascr.noutrefresh()
 
     def update_log(self, log):
 
@@ -68,25 +71,66 @@ class consoleUI():
         curses.nocbreak();
         curses.echo()
         self.inpscr.keypad(False)
-        exit(0)
 
 class consoleInput(Thread):
 
-    def __init__(self, input_screen, ui):
+
+    def __init__(self, ui):
         Thread.__init__(self)
-        self.input_screen = input_screen
+        self.input_screen = ui.inpscr
+        self.lt_session = ui.get_libtorrent_session()
         self.ui = ui
 
     def run(self):
 
         import curses
 
+        screen = self.input_screen
+        screen.refresh()
+
         while True:
-            in_text = self.input_screen.getstr(0,0,curses.COLS)
+            in_text = screen.getstr(0,0,curses.COLS)
+            screen.refresh()
 
             if 'quit' in in_text:
                 break
+
+            elif 'settings' in in_text:
+
+                settings = self.lt_session.get_settings()
+
+                for k in settings:
+                    v = settings[k]
+                    v = "test"
+                    status = "{0} = {1}({1})".format(k,v,type(v))
+                    #log.info(status)
+
+                    self.ui.update_log(status)
+                
+                self.clear_input()
+
+            elif 'clear' in in_text:
+                self.ui.stascr.clear()
+                self.ui.stascr.refresh()
+                self.clear_input()
+
+            elif 'save' in in_text:
+                self.lt_session.save_settings('libtorrent.settings')
+                self.ui.update_log("Libtorrent settings saved")
+                self.clear_input()
+
+            elif 'load' in in_text:
+                self.lt_session.load_settings('libtorrent.settings')
+                self.ui.update_log("Libtorrent settings loaded")
+                self.clear_input()
+
             else:
                 self.ui.update_log(in_text)
+                self.clear_input()
 
         self.ui.exit()
+
+    def clear_input(self):
+        self.input_screen.clear()
+        self.input_screen.refresh()
+

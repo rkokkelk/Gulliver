@@ -29,7 +29,7 @@ class Session():
         params = { 'save_path': './', 'ti': info }
         self.lt_session.add_torrent(params)
 
-    def load_libtor_settings(self, in_file):
+    def load_settings(self, in_file):
 
         config = ConfigObj(in_file)
         settings = self.lt_session.get_settings()
@@ -57,7 +57,7 @@ class Session():
             status = "{0} = {1}".format(k,v)
             ui.update_log(status)
 
-    def save_libtor_settings(self, out_file):
+    def save_settings(self, out_file):
 
         config = ConfigObj()
         config.filename=out_file
@@ -73,8 +73,8 @@ class Session():
         config.write()
         log.debug("Torrent settings have been written")
 
-    def get_libtor_settings(self):
-        pass
+    def get_settings(self):
+        return self.lt_session.get_settings()
 
     def set_libtor_settings(self, settings):
         pass

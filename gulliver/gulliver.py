@@ -18,11 +18,12 @@ import os
 import re
 
 from torrent.session import Session
-from ui.console import consoleUI
+from ui.console import consoleUI, consoleInput
 from ui.console_handler import ProgressConsoleHandler
 
 version = '0.0.1'
 name = 'Gulliver'
+input_run = True
 
 # Default logging object
 log = logging.getLogger('gulliver')
@@ -133,8 +134,9 @@ def initLogging():
 # Main method
 def main(argv):
 
-    global pid, debug_limit
+    global pid, debug_limit, input_run 
     pid = os.getpid()
+    input_run = True
 
     # Setup logging
     initLogging()
@@ -143,30 +145,28 @@ def main(argv):
     readOptions()
 
     # Start application
-    log.info("Torrent scan started")
+    log.info("%s (%s) started", name, version)
     readConfig(configFile)
 
     # Set the script on the following nice level
     # Make it high, this script is not high prio
     os.nice(Nice)
 
-    console = consoleUI()
+    lt_session = Session()
+    console = consoleUI(lt_session)
+
+    input_thread = consoleInput(console)
+    input_thread.start()
+
     consoleHandler = ProgressConsoleHandler(console)
     consoleHandler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s (%(levelname)s) - %(message)s')
     consoleHandler.setFormatter(formatter)
 
     log.addHandler(consoleHandler)
-    lt_session = Session()
 
-    lt_session.torrent_add("/home/rk/Development/Python/Gulliver/grml.torrent",'/home/rk/Download')
+    while input_thread.isAlive():
 
-    outfile = 'libtorrent.settings'
-    lt_session.save_libtor_settings(outfile)
-
-    lt_session.display_libtor_settings(console)
-
-    for i in range(100):
         console.update_status(lt_session.session_status())
         time.sleep(1)
 
