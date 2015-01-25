@@ -20,13 +20,13 @@ class consoleUI():
     input_run = True
 
     def __init__(self, lt_session):
-        global out_lines
+        global y
 
+        y = 0
         log.debug("Init")
         curses.wrapper(self.run)
         self.lt_session = lt_session
 
-        out_lines = list()
 
     def get_libtorrent_session(self):
         return self.lt_session
@@ -74,13 +74,13 @@ class consoleUI():
     def update_log(self, log):
 
         self.index += 1
-        out_lines.append(log)
         self.logscr.addstr(self.index,0,log)
         self.log_refresh()
 
     def log_refresh(self):
-        y = max(self.y,0)
-        self.logscr.refresh(y,0,1,0,curses.LINES-3,curses.COLS-1)
+        global y
+        i = max(y,0)
+        self.logscr.refresh(i,0,1,0,curses.LINES-3,curses.COLS-1)
 
     def exit(self):
         curses.endwin()
@@ -89,11 +89,15 @@ class consoleUI():
         self.inpscr.keypad(False)
 
     def scroll_down(self):
-        self.y += 1
+        global y
+        y += 1
+        self.logscr.addstr(self.index,0,str(y))
         self.log_refresh()
 
     def scroll_up(self):
-        self.y -= 1
+        global y
+        y -= 1
+        self.logscr.addstr(self.index,0,str(y))
         self.log_refresh()
 
 class consoleInput(Thread):
@@ -116,7 +120,9 @@ class consoleInput(Thread):
         while True:
             c = screen.getch()
             #in_text = screen.getstr(0,0,curses.COLS)
+            #self.ui.logscr.addstr(0,0,str(c))
 
+            KEY_UP, KEY_DOWN = 'AB'
             if c == curses.KEY_HOME or c == 10:
 
                 if not self.analyse_input(cmd_input):
@@ -125,9 +131,9 @@ class consoleInput(Thread):
                 cmd_input = ""
                 self.clear_input()
 
-            elif c == curses.KEY_DOWN:
+            elif c == KEY_DOWN or str(c) == 'd':
                 self.ui.scroll_down()
-            elif c == curses.KEY_UP:
+            elif c == KEY_UP or str(c) == 'u':
                 self.ui.scroll_up()
             else:
                 cmd_input += chr(c)
@@ -140,7 +146,6 @@ class consoleInput(Thread):
 
     def analyse_input(self, cmd_input):
 
-        self.ui.update_log(cmd_input)
         if 'quit' in cmd_input:
             return False
 
@@ -150,9 +155,12 @@ class consoleInput(Thread):
 
             for k in settings:
                 v = settings[k]
-                #v = "test"
-                status = "{0} = {1}".format(k,v,)
-                #log.info(status)
+
+                if isinstance(v,str):
+                    if v:
+                        v = ""
+                #status = "{0} = {1}".format(k,str(v).encode("hex"))
+                status = "{0} = {1}".format(k,v)
 
                 self.ui.update_log(str(status))
 
