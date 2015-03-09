@@ -8,18 +8,31 @@
 # See LICENSE for more details.
 #
 
+import os
+from optparse import make_option
+
+
 import deluge.component as component
 import deluge.scan.scanner as scanner
 from deluge.ui.client import client
 from deluge.ui.console.main import BaseCommand
 
-
 class Command(BaseCommand):
     "Scan the scan directory"
-    usage = "Usage: scan"
+
+    option_list = BaseCommand.option_list + (
+        make_option('-d','--scan-dir',dest='scan_dir',help='Folder which will be scanned'),
+    )
+    usage = "Usage: scan -d <scan-folder>"
 
     def handle(self, *args, **options):
         self.console = component.get("ConsoleUI")
+
+        t_options = {}
+        if options["scan_dir"]:
+            t_options["scan_dir"] = os.path.expanduser(options["scan_dir"])
+
+        self.console.write("{!success!} Input is "+t_options["scan_dir"])
 
         def on_shutdown(result):
             self.console.write("{!success!} Scan has finished")
@@ -27,5 +40,5 @@ class Command(BaseCommand):
         def on_shutdown_fail(reason):
             self.console.write("{!error!}Scan has failed: %s" % reason)
 
-        tmp_scanner = scanner.Scanner(None,None)
-        return tmp_scanner.test()
+        scan = scanner.Scanner(self.console)
+        return scan.scan(t_options["scan_dir"])
