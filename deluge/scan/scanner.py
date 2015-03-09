@@ -47,7 +47,7 @@ class Scanner(threading.Thread):
 
         print('Test')
 
-    def test():
+    def test(self):
         print('test')
 
     # Scan method

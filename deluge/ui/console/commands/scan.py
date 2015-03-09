@@ -27,5 +27,5 @@ class Command(BaseCommand):
         def on_shutdown_fail(reason):
             self.console.write("{!error!}Scan has failed: %s" % reason)
 
-        tmp_scanner = scanner()
+        tmp_scanner = scanner.Scanner(None,None)
         return tmp_scanner.test()
