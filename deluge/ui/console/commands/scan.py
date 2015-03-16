@@ -34,11 +34,11 @@ class Command(BaseCommand):
 
         self.console.write("{!success!} Input is "+t_options["scan_dir"])
 
-        def on_shutdown(result):
+        def on_scan(result):
             self.console.write("{!success!} Scan has finished")
 
-        def on_shutdown_fail(reason):
+        def on_scan_fail(reason):
             self.console.write("{!error!}Scan has failed: %s" % reason)
 
         scan = scanner.Scanner(self.console)
-        return scan.scan(t_options["scan_dir"])
+        return scan.scan(t_options["scan_dir"]).addCallback(on_scan).addErrback(on_scan_fail)

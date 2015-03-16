@@ -26,8 +26,6 @@ class Scanner(object):
     Scanner
     """
 
-    log = logging.getLogger(__name__+"scanner")
-
     # Regex, precompiled to increase speed
     prog_iso = re.compile("\w*\.iso$")
 
