@@ -293,6 +293,40 @@ class Core(component.Component):
         log.debug("Attempting to add by magnet uri: %s", uri)
 
         return self.torrentmanager.add(magnet=uri, options=options)
+    
+    @export
+    def add_torrent_seed(self, filename, filedump, seedname, options):
+        """Adds a torrent file to the session.
+
+        Args:
+            filename (str): the filename of the torrent
+            filedump (str): A base64 encoded string of the torrent file contents
+            seedname (str): the filename of the seed
+            options (dict): The options to apply to the torrent on add
+
+        Returns:
+            str: The torrent_id or None
+
+        """
+
+        options["download_location"] = seedname
+
+        try:
+            filedump = base64.decodestring(filedump)
+        except Exception as ex:
+            log.error("There was an error decoding the filedump string!")
+            log.exception(ex)
+
+        try:
+            torrent_id = self.torrentmanager.add(
+                filedump=filedump, options=options, filename=filename
+            )
+        except Exception as ex:
+            log.error("There was an error adding the torrent file %s", filename)
+            log.exception(ex)
+            torrent_id = None
+
+        return torrent_id
 
     @export
     def remove_torrent(self, torrent_id, remove_data):
