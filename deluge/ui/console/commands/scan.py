@@ -31,10 +31,8 @@ class Command(BaseCommand):
         if options["scan_dir"]:
             t_options["scan_dir"] = os.path.expanduser(options["scan_dir"])
         else:
-            t_options["scan_dir"] = config["scan_directory"]
+            t_options["scan_dir"] = None
             console.write("{!info!} No scan directory set, using default.")
-
-        console.write("{!info!} Scanning directory "+t_options["scan_dir"])
 
         def on_scan_success(result):
 
