@@ -97,6 +97,9 @@ class Core(component.Component):
         self.config = ConfigManager("core.conf")
         self.config.save()
 
+        # Config needs to be ready for scanner
+        self.scanner = Scanner()
+
         # If there was an interface value from the command line, use it, but
         # store the one in the config so we can restore it on shutdown
         self.__old_interface = None
@@ -107,8 +110,6 @@ class Core(component.Component):
             else:
                 log.error("Invalid listen interface (must be IP Address): %s", listen_interface)
 
-        # Start scanner
-        self.scanner = Scanner()
 
     def start(self):
         """Starts the core"""
@@ -197,7 +198,7 @@ class Core(component.Component):
     # Exported Methods
 
     @export
-    def start_scan(self, scan_dir=None):
+    def start_scan(self, scan_dir):
         return self.scanner.scan(scan_dir, False)
 
     @export
