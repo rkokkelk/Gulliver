@@ -25,7 +25,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         console = component.get("ConsoleUI")
-        config = component.get("CoreConfig")
 
         t_options = {}
         if options["scan_dir"]:
@@ -37,14 +36,14 @@ class Command(BaseCommand):
         def on_scan_success(result):
 
             if not result:
-                self.console.write("{!success!} No torrents found")
+                console.write("{!success!} No torrents found")
             else:
                 for d in result:
                     for torrent, seed in d.iteritems():
-                        self.console.write("{!info!} Torrent found "+torrent+" "+seed)
+                        console.write("{!info!} Torrent found "+torrent+" "+seed)
 
         def on_scan_fail(reason):
-            self.console.write("{!error!}Scan has failed: %s" % reason)
+            console.write("{!error!}Scan has failed: %s" % reason)
 
         d = client.core.start_scan(t_options["scan_dir"])
         d.addCallback(on_scan_success)
