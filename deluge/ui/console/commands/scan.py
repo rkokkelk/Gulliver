@@ -11,34 +11,45 @@
 import os
 from optparse import make_option
 
-
 import deluge.component as component
-import deluge.scan.scanner as scanner
 from deluge.ui.client import client
 from deluge.ui.console.main import BaseCommand
 
+
 class Command(BaseCommand):
-    "Scan the scan directory"
 
     option_list = BaseCommand.option_list + (
-        make_option('-d','--scan-dir',dest='scan_dir',help='Folder which will be scanned'),
+        make_option('-d', '--scan-dir', dest='scan_dir', help='Folder which will be scanned'),
     )
     usage = "Usage: scan -d <scan-folder>"
 
     def handle(self, *args, **options):
-        self.console = component.get("ConsoleUI")
+        console = component.get("ConsoleUI")
+        config = component.get("CoreConfig")
 
         t_options = {}
         if options["scan_dir"]:
             t_options["scan_dir"] = os.path.expanduser(options["scan_dir"])
+        else:
+            t_options["scan_dir"] = config["scan_directory"]
+            console.write("{!info!} No scan directory set, using default.")
 
-        self.console.write("{!success!} Input is "+t_options["scan_dir"])
+        console.write("{!info!} Scanning directory "+t_options["scan_dir"])
 
-        def on_shutdown(result):
-            self.console.write("{!success!} Scan has finished")
+        def on_scan_success(result):
 
-        def on_shutdown_fail(reason):
+            if not result:
+                self.console.write("{!success!} No torrents found")
+            else:
+                for d in result:
+                    for torrent, seed in d.iteritems():
+                        self.console.write("{!info!} Torrent found "+torrent+" "+seed)
+
+        def on_scan_fail(reason):
             self.console.write("{!error!}Scan has failed: %s" % reason)
 
-        scan = scanner.Scanner(self.console)
-        return scan.scan(t_options["scan_dir"])
+        d = client.core.start_scan(t_options["scan_dir"])
+        d.addCallback(on_scan_success)
+        d.addErrback(on_scan_fail)
+
+        return d
