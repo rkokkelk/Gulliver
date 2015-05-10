@@ -25,6 +25,11 @@ class Scanner(component.Component):
 
     def __init__(self):
         component.Component.__init__(self, "Scanner", interval=1)
+
+        # Verify if threads should run
+        self.running = True
+        self.timer = None
+
         self.start_timer()
 
     # Scan method
@@ -35,7 +40,7 @@ class Scanner(component.Component):
         core = component.get("Core")
         config = core.config.config
 
-        if not lock.acquire(False):
+        if lock.acquire(False):
 
             # If no scan dir is set, use default
             if not scan_dir:
@@ -64,10 +69,11 @@ class Scanner(component.Component):
                 results.append({result[0], result[1]})
                 result_queue.task_done()
 
-            if timer:
+            if timer and self.running:
 
                 sequence = config["scan_frequency"]
-                threading.Timer(sequence, self.scan).start()
+                self.timer = threading.Timer(sequence, self.scan)
+                self.timer.start()
 
             lock.release()
 
@@ -92,7 +98,14 @@ class Scanner(component.Component):
         config = core.config.config
 
         timer = config["scan_frequency"]
-        threading.Timer(timer, self.scan).start()
+        self.timer = threading.Timer(timer, self.scan)
+        self.timer.start()
+
+    def stop(self):
+
+        log.debug("Scanner shutting down")
+        self.running = False
+        self.timer.cancel()
 
 
 class Scan_Thread(threading.Thread):
