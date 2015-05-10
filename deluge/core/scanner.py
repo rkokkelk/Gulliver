@@ -11,9 +11,6 @@ import base64
 import logging
 import threading
 import thread
-
-from twisted.internet import reactor, defer
-
 import Queue
 import glob
 import re
@@ -62,8 +59,8 @@ class Scanner(component.Component):
                 scan_queue.put(os.path.join(scan_dir, dir_name))
 
             for i in range(5):
-                thread = Scan_Thread(scan_queue, result_queue)
-                thread.start()
+                scan_thread = Scan_Thread(scan_queue, result_queue)
+                scan_thread.start()
 
             scan_queue.join()
 
@@ -92,9 +89,9 @@ class Scanner(component.Component):
 
         t_options = {}
         filename = os.path.basename(torrent_location)
-        filedump = base64.encodestring(open(torrent_location).read())
-        seeddir, seedname = os.path.split(seed_location)
-        core.add_torrent_seed(filename, filedump, seeddir, t_options)
+        file_dump = base64.encodestring(open(torrent_location).read())
+        seed_dir, seed_name = os.path.split(seed_location)
+        core.add_torrent_seed(filename, file_dump, seed_dir, t_options)
 
     def start_timer(self):
 
@@ -117,52 +114,51 @@ class Scan_Thread(threading.Thread):
     prog_iso = re.compile("\w*\.iso$")
 
     # Constructor
-    def __init__(self, scanQueue, resultQueue):
+    def __init__(self, scan_queue, result_queue):
         threading.Thread.__init__(self)
-        self.scanQueue = scanQueue
-        self.resultQueue = resultQueue
+        self.scan_queue = scan_queue
+        self.result_queue = result_queue
         self.ID = thread.get_ident()
 
     # Scan method
-    def scan(self, scanDir):
+    def scan(self, scan_dir):
 
-        index = -1
-        isoList = list()
-        torList = list()
+        iso_list = list()
+        tor_list = list()
 
         # Walk through all subdirectories of the top directory
-        for root, dirs, files in os.walk(scanDir):
+        for root, dirs, files in os.walk(scan_dir):
 
             tmp_torrent_list = glob.glob(os.path.join(root, "*.torrent"))
             tmp_torrent_list.extend(glob.glob(os.path.join(root, "*.torrents")))
             tmp_iso_list = glob.glob(os.path.join(root, "*.iso"))
 
-            torList.extend(tmp_torrent_list)
-            isoList.extend(tmp_iso_list)
+            tor_list.extend(tmp_torrent_list)
+            iso_list.extend(tmp_iso_list)
 
-        log.debug("Result %s: (%d) torrents, (%d) iso", scanDir, len(torList), len(isoList))
+        log.debug("Result %s: (%d) torrents, (%d) iso", scan_dir, len(tor_list), len(iso_list))
 
         # Matching .torrent files with the corret .iso
-        for tor_file in torList:
+        for tor_file in tor_list:
             tor_base_name = os.path.basename(tor_file)
-            rmTor = re.sub(".torrent(s)?$", '', tor_base_name)
+            rm_tor = re.sub(".torrent(s)?$", '', tor_base_name)
 
             # Some torrents are stored as following abc.1.2.torrent --> abc.1.2.iso
             # so in order to fix this, .iso is appended if there is no file extension
-            if self.prog_iso.search(rmTor) is None:
-                rmTor = rmTor + ".iso"
+            if self.prog_iso.search(rm_tor) is None:
+                rm_tor = rm_tor + ".iso"
 
-            for iso_file in isoList:
+            for iso_file in iso_list:
                 iso_base_name = os.path.basename(iso_file)
-                if iso_base_name == rmTor:
+                if iso_base_name == rm_tor:
                     result = (tor_file, iso_file)
-                    self.resultQueue.put(result)
+                    self.result_queue.put(result)
 
     # Thread run method
     def run(self):
 
         # Loop through directories until queue is empty
-        while not self.scanQueue.empty():
-            scanDir = self.scanQueue.get()
-            self.scan(scanDir)
-            self.scanQueue.task_done()
+        while not self.scan_queue.empty():
+            scan_dir = self.scan_queue.get()
+            self.scan(scan_dir)
+            self.scan_queue.task_done()
