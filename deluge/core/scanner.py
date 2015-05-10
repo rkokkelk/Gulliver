@@ -25,9 +25,10 @@ class Scanner(component.Component):
 
     def __init__(self):
         component.Component.__init__(self, "Scanner", interval=1)
+        self.start_timer()
 
     # Scan method
-    def scan(self, scan_dir=None, timer=False):
+    def scan(self, scan_dir=None, timer=True):
 
         results = []
         lock = threading.Lock()
@@ -66,12 +67,12 @@ class Scanner(component.Component):
             if timer:
 
                 sequence = config["scan_frequency"]
-                threading.Timer(sequence, self.scan(scan_dir)).start()
+                threading.Timer(sequence, self.scan).start()
 
             lock.release()
 
         else:
-            raise Exception("Already running scan")
+            raise Exception("Already scan running")
 
         return results
 
@@ -87,11 +88,11 @@ class Scanner(component.Component):
 
     def start_timer(self):
 
-        config = component.get("CoreConfig")
+        core = component.get("Core")
+        config = core.config.config
 
         timer = config["scan_frequency"]
-        scan_directory = config["scan_directory"]
-        threading.Timer(timer, self.scan(scan_directory)).start()
+        threading.Timer(timer, self.scan).start()
 
 
 class Scan_Thread(threading.Thread):
