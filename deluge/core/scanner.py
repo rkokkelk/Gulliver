@@ -1,7 +1,11 @@
-""" Torrent.py
-
-This scripts traverses the specific directory and gathers all torrent files 
-and properly categorise them."""
+# -*- coding: utf-8 -*-
+#
+#  Roy Kokkelkoren  <roy.kokkelkoren@gmail.com>
+#
+# This file is part of Deluge and is licensed under GNU General Public License 3.0, or later, with
+# the additional special exception to link portions of this program with the OpenSSL library.
+# See LICENSE for more details.
+#
 
 import base64
 import logging

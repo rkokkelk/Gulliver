@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2008-2009 Ido Abramovich <ido.deluge@gmail.com>
-# Copyright (C) 2009 Andrew Resch <andrewresch@gmail.com>
+#  Roy Kokkelkoren  <roy.kokkelkoren@gmail.com>
 #
 # This file is part of Deluge and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
@@ -29,6 +28,7 @@ class Command(BaseCommand):
         t_options = {}
         if options["scan_dir"]:
             t_options["scan_dir"] = os.path.expanduser(options["scan_dir"])
+            console.write("{!info!} Scanning directory: "+t_options["scan_dir"])
         else:
             t_options["scan_dir"] = None
             console.write("{!info!} No scan directory set, using default.")
