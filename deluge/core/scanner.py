@@ -27,30 +27,51 @@ class Scanner(component.Component):
         component.Component.__init__(self, "Scanner", interval=1)
 
     # Scan method
-    def scan(self, scan_dir):
+    def scan(self, scan_dir=None, timer=False):
 
         results = []
-        scan_queue = Queue.Queue()
-        result_queue = Queue.Queue()
+        lock = threading.Lock()
+        core = component.get("Core")
+        config = core.config.config
 
-        dir_list = [dir_name for dir_name in os.listdir(scan_dir) if os.path.isdir(os.path.join(scan_dir, dir_name))]
-        log.debug("Scan directory size: %d", len(dir_list))
+        if not lock.acquire(False):
 
-        # Load all the subdirectories of scan_dir in scan_queue
-        for dir_name in dir_list:
-            scan_queue.put(os.path.join(scan_dir, dir_name))
+            # If no scan dir is set, use default
+            if not scan_dir:
+                scan_dir = config["scan_directory"]
 
-        for i in range(5):
-            thread = Scan_Thread(scan_queue, result_queue)
-            thread.start()
+            scan_queue = Queue.Queue()
+            result_queue = Queue.Queue()
 
-        scan_queue.join()
+            dir_list = [dir_name for dir_name in os.listdir(scan_dir)
+                        if os.path.isdir(os.path.join(scan_dir, dir_name))]
+            log.debug("Scan directory size: %d", len(dir_list))
 
-        while not result_queue.empty():
-            result = result_queue.get()
-            self.add_torrent_seed(result[0], result[1])
-            results.append({result[0], result[1]})
-            result_queue.task_done()
+            # Load all the subdirectories of scan_dir in scan_queue
+            for dir_name in dir_list:
+                scan_queue.put(os.path.join(scan_dir, dir_name))
+
+            for i in range(5):
+                thread = Scan_Thread(scan_queue, result_queue)
+                thread.start()
+
+            scan_queue.join()
+
+            while not result_queue.empty():
+                result = result_queue.get()
+                self.add_torrent_seed(result[0], result[1])
+                results.append({result[0], result[1]})
+                result_queue.task_done()
+
+            if timer:
+
+                sequence = config["scan_frequency"]
+                threading.Timer(sequence, self.scan(scan_dir)).start()
+
+            lock.release()
+
+        else:
+            raise Exception("Already running scan")
 
         return results
 
