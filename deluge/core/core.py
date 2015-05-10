@@ -34,6 +34,7 @@ from deluge.core.pluginmanager import PluginManager
 from deluge.core.preferencesmanager import PreferencesManager
 from deluge.core.rpcserver import export
 from deluge.core.torrentmanager import TorrentManager
+from deluge.core.scanner import Scanner
 from deluge.error import DelugeError, InvalidPathError, InvalidTorrentError
 from deluge.event import NewVersionAvailableEvent, SessionPausedEvent, SessionResumedEvent, TorrentQueueChangedEvent
 from deluge.httpdownloader import download_file
@@ -96,6 +97,9 @@ class Core(component.Component):
         self.config = ConfigManager("core.conf")
         self.config.save()
 
+        # Config needs to be ready for scanner
+        self.scanner = Scanner()
+
         # If there was an interface value from the command line, use it, but
         # store the one in the config so we can restore it on shutdown
         self.__old_interface = None
@@ -105,6 +109,7 @@ class Core(component.Component):
                 self.config["listen_interface"] = listen_interface
             else:
                 log.error("Invalid listen interface (must be IP Address): %s", listen_interface)
+
 
     def start(self):
         """Starts the core"""
@@ -191,6 +196,11 @@ class Core(component.Component):
         return False
 
     # Exported Methods
+
+    @export
+    def start_scan(self, scan_dir):
+        return self.scanner.scan(scan_dir, False)
+
     @export
     def add_torrent_file(self, filename, filedump, options):
         """Adds a torrent file to the session.

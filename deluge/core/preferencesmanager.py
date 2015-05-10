@@ -107,7 +107,9 @@ DEFAULT_PREFS = {
     "auto_manage_prefer_seeds": False,
     "shared": False,
     "super_seeding": False,
-    "priority": 0
+    "priority": 0,
+    "scan_directory": "/var/data",
+    "scan_frequency": 3600
 }
 
 
