@@ -35,12 +35,11 @@ class Command(BaseCommand):
 
         def on_scan_success(result):
 
-            if not result:
-                console.write("{!success!} No torrents found")
+            if any(result):
+                for torrent_name in result.iterkeys():
+                    console.write("{!success!} Torrent found "+torrent_name)
             else:
-                for d in result:
-                    for torrent, seed in d.iteritems():
-                        console.write("{!info!} Torrent found "+torrent+" "+seed)
+                console.write("{!success!} No torrents found")
 
         def on_scan_fail(reason):
             console.write("{!error!}Scan has failed: %s" % reason)

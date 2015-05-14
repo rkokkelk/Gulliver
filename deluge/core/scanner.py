@@ -12,10 +12,10 @@ import logging
 import threading
 import thread
 import Queue
-import glob
 import re
 import os
 
+from deluge._libtorrent import lt
 import deluge.component as component
 from deluge.scan.scan_thread import Scan_Thread
 
@@ -36,7 +36,7 @@ class Scanner(component.Component):
     # Scan method
     def scan(self, scan_dir=None, timer=True):
 
-        results = []
+        results = {}
         lock = threading.Lock()
         core = component.get("Core")
         config = core.config.config
@@ -58,17 +58,21 @@ class Scanner(component.Component):
             for dir_name in dir_list:
                 scan_queue.put(os.path.join(scan_dir, dir_name))
 
-            for i in range(5):
+            # Divide search for torrent by threads
+            for i in range(scan_queue.qsize()):
                 scan_thread = Scan_Thread(scan_queue, result_queue)
                 scan_thread.start()
 
+            # Wait for all torrent_scan to finish
             scan_queue.join()
 
+            # Add results in new dict for easy searching
             while not result_queue.empty():
-                result = result_queue.get()
-                self.add_torrent_seed(result[0], result[1])
-                results.append({result[0], result[1]})
+                torrent_result = result_queue.get()
+                results[torrent_result["name"]] = torrent_result
                 result_queue.task_done()
+
+            self.scan_for_files(results, scan_dir, core)
 
             if timer and self.running:
 
@@ -83,9 +87,29 @@ class Scanner(component.Component):
 
         return results
 
-    def add_torrent_seed(self, torrent_location, seed_location):
+    def scan_for_files(self, torrent_list, scan_dir, core):
 
-        core = component.get("Core")
+        # Walk through all subdirectories of the top directory
+        for root, dirs, files in os.walk(scan_dir):
+
+            for dir_walk in dirs:
+                if dir_walk in torrent_list:
+                    print("Found dir, do nothing, yet!")
+                    pass
+
+            for file_walk in files:
+                if file_walk in torrent_list:
+
+                    file_root = os.path.join(root, file_walk)
+                    file_size = os.path.getsize(file_root)
+                    with open(torrent_list[file_walk]["path"], "r") as f:
+                        metadata = lt.bdecode(f.read())
+
+                    # Verify if correct file by comparing file size
+                    if file_size == metadata["info"]["length"]:
+                        self.add_torrent_seed(torrent_list[file_walk]["path"], file_root, core)
+
+    def add_torrent_seed(self, torrent_location, seed_location, core):
 
         t_options = {}
         filename = os.path.basename(torrent_location)
@@ -111,7 +135,7 @@ class Scanner(component.Component):
 
 class Scan_Thread(threading.Thread):
 
-    prog_iso = re.compile("\w*\.iso$")
+    re_torrents = re.compile(".*\.torrent(s)?$")
 
     # Constructor
     def __init__(self, scan_queue, result_queue):
@@ -121,38 +145,27 @@ class Scan_Thread(threading.Thread):
         self.ID = thread.get_ident()
 
     # Scan method
-    def scan(self, scan_dir):
-
-        iso_list = list()
-        tor_list = list()
+    def scan_for_torrent(self, scan_dir):
 
         # Walk through all subdirectories of the top directory
         for root, dirs, files in os.walk(scan_dir):
 
-            tmp_torrent_list = glob.glob(os.path.join(root, "*.torrent"))
-            tmp_torrent_list.extend(glob.glob(os.path.join(root, "*.torrents")))
-            tmp_iso_list = glob.glob(os.path.join(root, "*.iso"))
+            for walk_file in files:
 
-            tor_list.extend(tmp_torrent_list)
-            iso_list.extend(tmp_iso_list)
+                # Verify if is torrent file by checking extension
+                if self.re_torrents.match(walk_file):
 
-        log.debug("Result %s: (%d) torrents, (%d) iso", scan_dir, len(tor_list), len(iso_list))
+                    is_dir = False
+                    file_root = os.path.join(root, walk_file)
+                    with open(file_root, "r") as f:
+                        metadata = lt.bdecode(f.read())
 
-        # Matching .torrent files with the corret .iso
-        for tor_file in tor_list:
-            tor_base_name = os.path.basename(tor_file)
-            rm_tor = re.sub(".torrent(s)?$", '', tor_base_name)
+                    name = metadata["info"]["name"]
+                    if "files" in metadata["info"]:
+                        is_dir = True
 
-            # Some torrents are stored as following abc.1.2.torrent --> abc.1.2.iso
-            # so in order to fix this, .iso is appended if there is no file extension
-            if self.prog_iso.search(rm_tor) is None:
-                rm_tor = rm_tor + ".iso"
-
-            for iso_file in iso_list:
-                iso_base_name = os.path.basename(iso_file)
-                if iso_base_name == rm_tor:
-                    result = (tor_file, iso_file)
-                    self.result_queue.put(result)
+                    file_dict = {"name": name, "is_dir": is_dir, "path": file_root}
+                    self.result_queue.put(file_dict)
 
     # Thread run method
     def run(self):
@@ -160,5 +173,5 @@ class Scan_Thread(threading.Thread):
         # Loop through directories until queue is empty
         while not self.scan_queue.empty():
             scan_dir = self.scan_queue.get()
-            self.scan(scan_dir)
+            self.scan_for_torrent(scan_dir)
             self.scan_queue.task_done()
