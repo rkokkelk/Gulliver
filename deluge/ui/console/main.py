@@ -27,6 +27,7 @@ from deluge.ui.console import UI_PATH, colors
 from deluge.ui.console.eventlog import EventLog
 from deluge.ui.console.statusbars import StatusBars
 from deluge.ui.coreconfig import CoreConfig
+from deluge.ui.torrentconfig import TorrentConfig
 from deluge.ui.sessionproxy import SessionProxy
 from deluge.ui.ui import _UI
 
@@ -305,6 +306,7 @@ class ConsoleUI(component.Component):
                     cmdr.exec_args(args, None, None, None, None)
 
         self.coreconfig = CoreConfig()
+        self.torrent_config = TorrentConfig()
         if self.interactive and not deluge.common.windows_check():
             # We use the curses.wrapper function to prevent the console from getting
             # messed up if an uncaught exception is experienced.

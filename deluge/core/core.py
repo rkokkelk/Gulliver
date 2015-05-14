@@ -94,6 +94,7 @@ class Core(component.Component):
         self.new_release = None
 
         # Get the core config
+        self.torrent_config = self.session.get_settings()
         self.config = ConfigManager("core.conf")
         self.config.save()
 
@@ -529,6 +530,27 @@ class Core(component.Component):
             if isinstance(config[key], basestring):
                 config[key] = config[key].encode("utf8")
             self.config[key] = config[key]
+
+    @export
+    def get_torrent_config_value(self, key):
+        """Get the config value for key"""
+        return self.torrent_config(key)
+
+    @export
+    def get_torrent_config(self):
+        """Get all the preferences as a dictionary"""
+        return self.session.get_settings()
+
+    @export
+    def set_torrent_config(self, config):
+        """Set the torrent settings with values from dictionary"""
+        # Load all the values into the configuration
+        for key in config.keys():
+            if isinstance(config[key], basestring):
+                config[key] = config[key].encode("utf8")
+            self.torrent_config[key] = config[key]
+
+        self.session.set_settings(self.torrent_config)
 
     @export
     def get_listen_port(self):
