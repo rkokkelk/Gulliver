@@ -539,7 +539,17 @@ class Core(component.Component):
     @export
     def get_torrent_config(self):
         """Get all the preferences as a dictionary"""
-        return self.session.get_settings()
+        config = self.session.get_settings()
+
+        # Clean torrent settings for any unicode value
+        for key in config.keys():
+            value = config[key]
+            if isinstance(value, unicode):
+                if '\0' in value:
+                    value = value.encode('utf8', 'ignore')
+                    config[key] = value
+
+        return config
 
     @export
     def set_torrent_config(self, config):
