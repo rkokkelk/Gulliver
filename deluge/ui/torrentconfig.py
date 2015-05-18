@@ -42,11 +42,17 @@ class TorrentConfig(component.Component):
 
         for key in self.config.keys():
             value = self.config[key]
-            if isinstance(value, unicode):
-                if '\0' in value:
-                    value = value.encode('utf-8', 'ignore')
-                    self.config[key] = value
+            if isinstance(value, unicode) and '\0' in value and len(value) == 1:
+                """
+                Not ideal setup but encode functions, replace functions
+                and other functions does not remove null byte from value.
 
+                Only peer_tos key contains a null byte
+                """
+                # TODO: create cleaner implementation
+                self.config[key] = ""
+            elif '\0' in value:
+                log.warning("Found another null byte in (%s)", key)
 
     def __getitem__(self, key):
         return self.config[key]
