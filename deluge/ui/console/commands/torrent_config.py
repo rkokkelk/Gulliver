@@ -70,6 +70,7 @@ class Command(BaseCommand):
 
     option_list = BaseCommand.option_list + (
         make_option("-s", "--set", action="store", nargs=2, dest="set", help="set value for key"),
+        make_option("--hs", action="store_true", default=False, dest="high_speed", help="Set the high performance seed setting to libtorrent"),
     )
     usage = """Usage: config [key1 [key2 ...]]"
        config --set key value"""
@@ -78,8 +79,22 @@ class Command(BaseCommand):
         self.console = component.get("ConsoleUI")
         if options["set"]:
             return self._set_config(*args, **options)
+        if options["high_speed"]:
+            self._set_high_performance_seed()
         else:
             return self._get_config(*args, **options)
+
+    def _set_high_performance_seed(self):
+        config = component.get("TorrentConfig")
+
+        def on_set_config(result):
+            self.console.write("{!success!}High performance seed settings enabled.")
+
+        def on_error(result):
+            self.console.write("{!error!}Could not set settings "+str(result))
+
+        config.set_high_performance_seed().addCallback(on_set_config).addErrback(on_error)
+        return config
 
     def _get_config(self, *args, **options):
         config = component.get("TorrentConfig")

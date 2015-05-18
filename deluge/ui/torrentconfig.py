@@ -51,8 +51,20 @@ class TorrentConfig(component.Component):
                 """
                 # TODO: create cleaner implementation
                 self.config[key] = ""
-            elif '\0' in value:
+            elif isinstance(value, unicode) and '\0' in value:
                 log.warning("Found another null byte in (%s)", key)
+
+    def set_high_performance_seed(self):
+        deferred = defer.Deferred()
+        client.core.set_torrent_high_speed_seed()
+
+        def on_get_config(config):
+            self.config = config
+            self._clean_config()
+            deferred.callback(True)
+
+        client.core.get_torrent_config().addCallback(on_get_config)
+        return deferred
 
     def __getitem__(self, key):
         return self.config[key]

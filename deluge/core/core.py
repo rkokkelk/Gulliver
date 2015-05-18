@@ -539,17 +539,7 @@ class Core(component.Component):
     @export
     def get_torrent_config(self):
         """Get all the preferences as a dictionary"""
-        config = self.session.get_settings()
-
-        # Clean torrent settings for any unicode value
-        for key in config.keys():
-            value = config[key]
-            if isinstance(value, unicode):
-                if '\0' in value:
-                    value = value.encode('utf8', 'ignore')
-                    config[key] = value
-
-        return config
+        return self.session.get_settings()
 
     @export
     def set_torrent_config(self, config):
@@ -561,6 +551,12 @@ class Core(component.Component):
             self.torrent_config[key] = config[key]
 
         self.session.set_settings(self.torrent_config)
+
+    @export
+    def set_torrent_high_speed_seed(self):
+        """Set the torrent setting to high performance seed"""
+        high_speed_settings = lt.high_performance_seed()
+        self.session.set_settings(high_speed_settings)
 
     @export
     def get_listen_port(self):
