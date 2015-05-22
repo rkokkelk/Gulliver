@@ -160,6 +160,10 @@ class Scan_Thread(threading.Thread):
                     with open(file_root, "r") as f:
                         metadata = lt.bdecode(f.read())
 
+                    if metadata is None:
+                        log.warning("Corrupt torrent file found: %s"+walk_file)
+                        continue
+
                     name = metadata["info"]["name"]
                     if "files" in metadata["info"]:
                         is_dir = True

@@ -23,9 +23,7 @@ class TorrentConfig(component.Component):
         component.Component.__init__(self, "TorrentConfig")
         self.config = {}
 
-        #def on_configvaluechanged_event(key, value):
-        #    self.config[key] = value
-        #client.register_event_handler("ConfigValueChangedEvent", on_configvaluechanged_event)
+        client.register_event_handler("TorrentStateChangedEvent", self.on_torrent_state_changed_event)
 
     def start(self):
         def on_get_config(config):
@@ -37,6 +35,13 @@ class TorrentConfig(component.Component):
 
     def stop(self):
         self.config = {}
+
+    def on_torrent_state_changed_event(self, torrent_id, state):
+        # We only want to seed, so if file has been removed on disk then remove
+        # file from seeding to prevent downloading
+        if "Downloading" == state:
+            log.debug("State changed to downloading, removed: %s (%s)", str(torrent_id), str(state))
+            client.core.remove_torrent(torrent_id, True)
 
     def _clean_config(self):
 
