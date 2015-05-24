@@ -17,7 +17,6 @@ import os
 
 from deluge._libtorrent import lt
 import deluge.component as component
-from deluge.scan.scan_thread import Scan_Thread
 
 log = logging.getLogger(__name__+"scanner")
 
